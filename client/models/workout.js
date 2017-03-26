@@ -33,7 +33,8 @@ module.exports = Model.extend(ApiMixin, {
         lastInGroup: 'boolean' //used for sharing styles
     },
     collections: {
-        activities: Activities
+        activities: Activities,
+        pendingActivity: Activities
     },
     parse: function (resp) {
 

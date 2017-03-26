@@ -41,7 +41,7 @@ module.exports = View.extend({
         'input [data-hook=workout-input]': 'throttledParse',
         'input [data-hook=name-input]': 'setName',
         'input [data-hook=date-input]': 'setDate',
-        'submit form': 'saveWorkout'
+        'submit form': 'addSingleActivity'
     },
     session: {
         'working': 'boolean',
@@ -99,8 +99,10 @@ module.exports = View.extend({
     render: function () {
 
         this.renderWithTemplate();
+        this.renderCollection(this.model.pendingActivity, ActivityView, this.queryByHook('workout-pendingactivity'));
         this.renderCollection(this.model.activities, ActivityView, this.queryByHook('workout-activities'));
         this.checkExisting(this.model, this.model.dateId);
+        $('#rawInput').focus();
         return this;
     },
     setName: function (e) {
@@ -125,6 +127,16 @@ module.exports = View.extend({
     },
     userInputChanged: function (e) {
 
+        if (!e.target.value) {
+            return;
+        }
+        $.ajax({
+            url: App.apiUrl + '/suggest/activities/' + e.target.value,
+            headers: { 'authorization': 'Bearer ' + App.accessToken }
+        }).then((data) => {
+
+            this.model.activitySuggestList  = data.suggestions.map((item) => item.name );
+        });
         this.parseWorkout(e.target);
     },
     addActivities: function (activities) {
@@ -155,35 +167,30 @@ module.exports = View.extend({
     parseWorkout: function (el) {
 
         var data = el.value;
-        this.model.raw = data;
-        if (!data) {
-            this.model.unset('name');
-            if (this.model.dateId !== Moment().format('YYYY-MM-DD')) {
-                this.model.unset('date');
-            }
-            this.model.raw_date = workout.rawDate;
-            this.model.activities.reset();
-            return;
-        }
+        this.model.pendingActivity.forEach(function (activity, i) {
+
+            this.model.pendingActivity.remove(activity);
+        }, this);
         var workout = Caber.workout(data, App.me.preferences.weightUnit);
         if (workout.name) {
             this.model.name = workout.name;
-        }
-        else {
-            this.model.unset('name');
         }
         if (workout.date) {
             if (workout.rawDate !== this.model.raw_date) {
                 this.model.date = workout.date;
             }
+            this.model.raw_date = workout.rawDate;
         }
-        else if (this.model.dateId !== Moment().format('YYYY-MM-DD')) {
-            if (!this.model.id) {
-                this.model.unset('date');
-            }
-        }
-        this.model.raw_date = workout.rawDate;
-        this.addActivities(workout.activities);
+        this.model.pendingActivity.add(workout.activities[0], { fetch: true });
+    },
+    addSingleActivity: function (e) {
+
+        e.preventDefault();
+        this.model.pendingActivity.forEach(function (activity, i) {
+
+            this.model.activities.add(activity);
+        }, this);
+        $(this.render());
     },
     saveWorkout: function (e) {
 

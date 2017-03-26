@@ -2,8 +2,10 @@ form
   .row
     .small-12.medium-6.columns
       .row
+        p(data-hook='workout-pendingactivity')
+      .row
         .small-12.columns
-          textarea(data-hook='workout-input' rows=5 placeholder='Enter your workout here.' title='Workout' id='rawInput' spellcheck='false')
+          input(data-hook='workout-input' placeholder='Enter your activity here.' title='Workout' id='rawInput' spellcheck='false' autofocus)
           br
       .row.clearfix
         .small-12.medium-6.columns(data-hook='workout')
